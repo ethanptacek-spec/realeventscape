@@ -1,9 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { sections } from "@/lib/sections";
+import { buildSectionCoachFallback, type SectionCoachingSuggestion } from "@/lib/research";
 import type { BillDraft } from "@/lib/types";
+
+interface CoachResponseBody {
+  source: "openai" | "rule-based";
+  suggestion: SectionCoachingSuggestion;
+  error?: string;
+}
 
 interface BillBuilderProps {
   draft: BillDraft;
@@ -71,6 +78,12 @@ export function BillBuilder({ draft, onDraftChange }: BillBuilderProps) {
                 }
                 placeholder="Start drafting this section..."
               />
+              <SectionAssistant
+                sectionId={currentStep.id}
+                draft={draft}
+                currentText={draft[currentStep.id]}
+                onApplySuggestion={(text) => onDraftChange({ ...draft, [currentStep.id]: text })}
+              />
               <div className="mt-4 flex justify-between text-xs text-slate-500">
                 <button
                   type="button"
@@ -98,6 +111,102 @@ export function BillBuilder({ draft, onDraftChange }: BillBuilderProps) {
         </div>
       </div>
     </section>
+  );
+}
+
+interface SectionAssistantProps {
+  sectionId: (typeof sections)[number]["id"];
+  draft: BillDraft;
+  currentText: string;
+  onApplySuggestion: (text: string) => void;
+}
+
+function SectionAssistant({ sectionId, draft, currentText, onApplySuggestion }: SectionAssistantProps) {
+  const [suggestion, setSuggestion] = useState<SectionCoachingSuggestion | null>(null);
+  const [source, setSource] = useState<"openai" | "rule-based" | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSuggestion(null);
+    setSource(null);
+    setError(null);
+  }, [sectionId]);
+
+  async function handleGenerate() {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/coach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sectionId, draft, currentText })
+      });
+
+      const payload = (await response.json()) as CoachResponseBody;
+
+      if (!response.ok || !payload?.suggestion) {
+        throw new Error(payload?.error || "Unable to generate suggestions right now.");
+      }
+
+      setSuggestion(payload.suggestion);
+      setSource(payload.source);
+    } catch (apiError) {
+      console.error(apiError);
+      setError(apiError instanceof Error ? apiError.message : "Unexpected error");
+      const fallback = buildSectionCoachFallback(sectionId, currentText, draft);
+      setSuggestion(fallback);
+      setSource("rule-based");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  return (
+    <div className="mt-6 rounded-2xl border border-dashed border-primary/40 bg-white p-4 text-sm text-slate-600">
+      <div className="flex flex-col gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Need help rewriting?</p>
+          <p>
+            Ask BillBuddy to strengthen this section in a formal legislative tone. Review the draft before accepting any
+            suggestion.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleGenerate}
+            className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isLoading}
+          >
+            {isLoading ? "Thinking..." : "Improve with AI"}
+          </button>
+          {source ? (
+            <span className="text-xs text-primary">
+              {source === "openai" ? "Powered by OpenAI" : "Using offline template"}
+            </span>
+          ) : null}
+        </div>
+        {error ? <p className="text-xs text-red-600">{error}</p> : null}
+        {suggestion ? (
+          <div className="space-y-3 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-primary">Suggested revision</p>
+              <p className="whitespace-pre-wrap text-sm text-slate-700">{suggestion.improvedText}</p>
+            </div>
+            <p className="text-xs text-slate-500">{suggestion.rationale}</p>
+            <button
+              type="button"
+              onClick={() => onApplySuggestion(suggestion.improvedText)}
+              className="rounded-full border border-primary px-4 py-2 text-xs font-semibold text-primary transition hover:bg-primary/10"
+            >
+              Use this version
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 }
 

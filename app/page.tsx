@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { BillBuilder } from "@/components/BillBuilder";
+import { BillPreview } from "@/components/BillPreview";
 import { ExampleLibrary } from "@/components/ExampleLibrary";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
@@ -24,6 +25,7 @@ export default function HomePage() {
       <RevisionAssistant draft={draftForRevision} />
       <ResearchHelper />
       <ExampleLibrary />
+      <BillPreview draft={draft} />
       <CallToAction />
       <Footer />
     </main>

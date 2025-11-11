@@ -4,11 +4,11 @@ BillBuddy is a prototype web application that helps Youth in Government (YIG) st
 
 ## Features
 
-- **Guided Bill Builder** – A step-by-step workflow that walks students through every required bill section (title, purpose, definitions, provisions, fiscal impact, and enforcement). Progress indicators and completion tips keep drafters on track.
-- **AI Revision Assistant (rule-based prototype)** – Provides structured feedback on tone, clarity, structure, and evidence needs using heuristics. This simulates how an AI assistant would highlight improvements before submitting to advisors.
-- **Research Helper** – Generates quick research highlights for common YIG policy domains and offers guidance on gathering credible sources.
-- **Example Library** – Curated sample bills organized by topic so students can compare formatting and persuasive techniques.
-- **Call-to-action footer** – Encourages advisors to contact the team for onboarding, aligning with the Phase 2 dashboard vision.
+- **Guided Bill Builder** – A step-by-step workflow that walks students through every required bill section (title, purpose, definitions, provisions, fiscal impact, and enforcement). Progress indicators, completion tips, and an AI-powered section coach keep drafters on track.
+- **AI Revision Assistant** – Sends the full draft to the OpenAI API (or a rule-based fallback when no key is configured) to produce structured feedback covering tone, clarity, structure, and evidence gaps. Suggestions are grouped by bill section for quick editing.
+- **Research Helper** – Uses the OpenAI API to surface recent policy insights and recommended public sources for a topic. When offline, curated fallback research cards keep students moving.
+- **Formatted Bill Preview** – Assembles the draft into a YIG-ready layout with copy/download actions so students can share a polished document instantly.
+- **Example Library & Advisor CTA** – Curated sample bills organized by topic and an advisor-focused call-to-action that aligns with the planned dashboard vision.
 
 ## Getting Started
 
@@ -18,13 +18,19 @@ BillBuddy is a prototype web application that helps Youth in Government (YIG) st
    npm install
    ```
 
-2. Start the development server:
+2. Configure environment variables. Create a `.env.local` file and supply an OpenAI API key (skip this step to run in fallback/offline mode):
+
+   ```bash
+   OPENAI_API_KEY=sk-your-key-here
+   ```
+
+3. Start the development server:
 
    ```bash
    npm run dev
    ```
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser to explore the prototype.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser to explore the prototype. The revision assistant, research helper, and section coach will automatically use the API key when present and fall back to heuristic guidance otherwise.
 
 ### Offline Preview
 
@@ -48,10 +54,10 @@ The standalone HTML/CSS page mirrors the main landing experience showcased in th
 ## Project Structure
 
 ```
-app/                # Next.js app router pages
+app/                # Next.js app router pages and API routes for AI orchestration
 components/         # Reusable UI components for the BillBuddy experience
-lib/                # Shared utilities, including bill section metadata and feedback heuristics
-public/             # (Optional) Static assets
+lib/                # Shared utilities, prompts, and fallback heuristics
+preview/            # Standalone static mock for offline review
 ```
 
 ## Next Steps

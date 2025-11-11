@@ -2,15 +2,61 @@
 
 import { FormEvent, useState } from "react";
 
-import { getResearchSummary } from "@/lib/feedback";
+import { getResearchFallback, type ResearchResult } from "@/lib/research";
+
+interface ResearchResponseBody {
+  source: "openai" | "fallback";
+  result: ResearchResult;
+  error?: string;
+}
 
 export function ResearchHelper() {
   const [topic, setTopic] = useState("");
-  const [results, setResults] = useState<string[]>(getResearchSummary(""));
+  const [results, setResults] = useState<ResearchResult>(getResearchFallback(""));
+  const [source, setSource] = useState<"openai" | "fallback">("fallback");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setResults(getResearchSummary(topic));
+
+    const trimmedTopic = topic.trim();
+    if (!trimmedTopic) {
+      setResults(getResearchFallback(""));
+      setSource("fallback");
+      setError(null);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/research", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ topic: trimmedTopic })
+      });
+
+      const payload = (await response.json()) as ResearchResponseBody;
+
+      if (!response.ok || !payload?.result) {
+        throw new Error(payload?.error || "Unable to fetch research insights.");
+      }
+
+      setResults(payload.result);
+      setSource(payload.source);
+    } catch (apiError) {
+      console.error(apiError);
+      setError(apiError instanceof Error ? apiError.message : "Unexpected error");
+      const fallback = getResearchFallback(trimmedTopic);
+      setResults(fallback);
+      setSource("fallback");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -33,26 +79,51 @@ export function ResearchHelper() {
               />
               <button
                 type="submit"
-                className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary/90"
+                className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isLoading}
               >
-                Generate insights
+                {isLoading ? "Generating..." : "Generate insights"}
               </button>
             </form>
-            <p className="mt-3 text-xs text-slate-500">
-              BillBuddy shares high-level guidance. Always verify statistics before publication.
-            </p>
+            <div className="mt-3 space-y-2 text-xs text-slate-500">
+              <p>BillBuddy shares high-level guidance. Always verify statistics before publication.</p>
+              <p className="font-semibold text-primary">
+                {source === "openai" ? "Powered by the OpenAI API." : "Using offline research templates."}
+              </p>
+              {error ? <p className="text-red-600">{error}</p> : null}
+            </div>
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-slate-900">Research Highlights</h3>
             <ul className="mt-4 space-y-3 text-sm text-slate-700">
-              {results.map((result, index) => (
+              {results.highlights.map((result, index) => (
                 <li key={`${result}-${index}`} className="flex items-start gap-3">
                   <span className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-primary"></span>
                   <span>{result}</span>
                 </li>
               ))}
             </ul>
+            {results.sources.length > 0 ? (
+              <div className="mt-6 space-y-3 text-sm">
+                <p className="text-sm font-semibold text-slate-900">Suggested sources</p>
+                <ul className="space-y-3">
+                  {results.sources.map((sourceItem) => (
+                    <li key={sourceItem.url} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <a
+                        href={sourceItem.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary underline-offset-4 hover:underline"
+                      >
+                        {sourceItem.title}
+                      </a>
+                      <p className="mt-1 text-xs text-slate-600">{sourceItem.note}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

@@ -18,6 +18,7 @@ export interface FeedbackItem {
   sectionId: BillSectionId | "overall";
   type: "structure" | "clarity" | "tone" | "evidence" | "format";
   message: string;
+  suggestion?: string;
 }
 
 export function generateFeedback(draft: BillDraft): FeedbackItem[] {
@@ -30,7 +31,8 @@ export function generateFeedback(draft: BillDraft): FeedbackItem[] {
       feedback.push({
         sectionId: section.id,
         type: "structure",
-        message: `${section.label} is empty—add content before sharing with advisors.`
+        message: `${section.label} is empty—add content before sharing with advisors.`,
+        suggestion: `Draft two to three sentences for the ${section.label.toLowerCase()} that clearly state who is affected, what changes, and when it takes effect.`
       });
       return;
     }
@@ -39,7 +41,8 @@ export function generateFeedback(draft: BillDraft): FeedbackItem[] {
       feedback.push({
         sectionId: section.id,
         type: "clarity",
-        message: `${section.label} is quite short. Expand with at least two detailed sentences or numbered clauses.`
+        message: `${section.label} is quite short. Expand with at least two detailed sentences or numbered clauses.`,
+        suggestion: `Add concrete details—include names of agencies, timelines, or numerical targets to reach a full paragraph.`
       });
     }
 
@@ -47,7 +50,8 @@ export function generateFeedback(draft: BillDraft): FeedbackItem[] {
       feedback.push({
         sectionId: section.id,
         type: "evidence",
-        message: `Strengthen the ${section.label.toLowerCase()} with a statistic, government source, or cost estimate.`
+        message: `Strengthen the ${section.label.toLowerCase()} with a statistic, government source, or cost estimate.`,
+        suggestion: `Cite a recent report (within 3 years) from a state agency or credible nonprofit and mention the figure directly in the section.`
       });
     }
 
@@ -59,7 +63,8 @@ export function generateFeedback(draft: BillDraft): FeedbackItem[] {
       feedback.push({
         sectionId: section.id,
         type: "tone",
-        message: `Replace casual phrasing with legislative language, e.g., swap words matching "${replaced.casual.source}" with "${replaced.formal}".`
+        message: `Replace casual phrasing with legislative language, e.g., swap words matching "${replaced.casual.source}" with "${replaced.formal}".`,
+        suggestion: `Rewrite each sentence using "shall" and precise verbs so the obligations are enforceable.`
       });
     }
 
@@ -67,7 +72,8 @@ export function generateFeedback(draft: BillDraft): FeedbackItem[] {
       feedback.push({
         sectionId: section.id,
         type: "format",
-        message: "Number each major action (1., 2., 3.) so delegates can reference clauses during debate."
+        message: "Number each major action (1., 2., 3.) so delegates can reference clauses during debate.",
+        suggestion: "Break the provisions into numbered clauses such as '1. The Department of...' and '2. Funding shall...'"
       });
     }
   });
@@ -77,48 +83,10 @@ export function generateFeedback(draft: BillDraft): FeedbackItem[] {
     feedback.push({
       sectionId: "overall",
       type: "structure",
-      message: `Complete the remaining ${missingCount} section${missingCount > 1 ? "s" : ""} to finish your bill.`
+      message: `Complete the remaining ${missingCount} section${missingCount > 1 ? "s" : ""} to finish your bill.`,
+      suggestion: "Use the completion checklist to fill in each blank section before exporting your bill."
     });
   }
 
   return feedback;
-}
-
-const researchTopics: Record<string, string[]> = {
-  environment: [
-    "According to the EPA, school buildings waste an estimated 25% of their energy annually due to outdated systems.",
-    "The National Renewable Energy Laboratory reports that LED retrofits cut lighting costs by 50-70%."
-  ],
-  education: [
-    "A 2023 NCES study found that project-based civic learning improved student policy knowledge by 32%.",
-    "State youth civic participation grants have averaged $1.2M annually over the past five years."
-  ],
-  health: [
-    "The CDC notes that adolescent mental health ER visits increased 31% from 2019 to 2021.",
-    "Telehealth programs in rural counties reduced appointment wait times by 45% according to HHS."
-  ],
-  transportation: [
-    "USDOT estimates that dedicated bus lanes can move three times more people per hour than mixed traffic lanes.",
-    "A regional transit authority case study shows a 18% ridership increase after implementing student transit passes."
-  ]
-};
-
-export function getResearchSummary(topic: string): string[] {
-  const normalized = topic.trim().toLowerCase();
-  const matchingKey = (Object.keys(researchTopics) as Array<keyof typeof researchTopics>).find((key) =>
-    normalized.includes(key)
-  );
-
-  if (matchingKey) {
-    return researchTopics[matchingKey];
-  }
-
-  if (!topic) {
-    return ["Enter a topic to receive quick research highlights relevant to your bill."];
-  }
-
-  return [
-    `Search local government reports, credible journalism, and academic studies about "${topic}" to gather supporting evidence.`,
-    "Focus on recent data (within the last 3 years) and cite agencies or experts when possible."
-  ];
 }
