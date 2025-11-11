@@ -26,6 +26,18 @@ BillBuddy is a prototype web application that helps Youth in Government (YIG) st
 
 3. Open [http://localhost:3000](http://localhost:3000) in your browser to explore the prototype.
 
+### Offline Preview
+
+If you cannot install dependencies in your environment, open the static mock stored at
+`preview/index.html` to review the interface:
+
+```bash
+open preview/index.html   # macOS
+xdg-open preview/index.html # Linux
+```
+
+The standalone HTML/CSS page mirrors the main landing experience showcased in the Next.js app.
+
 ## Technology Stack
 
 - [Next.js 14](https://nextjs.org/) with the App Router
